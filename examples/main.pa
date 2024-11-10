@@ -1,0 +1,5 @@
+one: int -> 5
+print "text", one. ;;output: text5 
+
+two: float -> 5.1252412312
+print two, " ", two%3 ;* output: "two" is printed out fully, but adding %3 prints out only 3 values after dot, so output: 5.1252412312 5.125 *;

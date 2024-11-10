@@ -4,7 +4,8 @@
 
 typedef enum {
     PRINT_OP = 0x01,
-    INT_OP = 0x02
+    INT_OP = 0x02,
+    FLOAT_OP = 0x03
 } OpcodeEnum;
 
 typedef enum {
@@ -28,10 +29,20 @@ typedef struct {
     OpcodeHandler handler;
 } Opcode;
 
+typedef enum {
+    TYPE_INT,
+    TYPE_FLOAT
+} VariableType;
+
 typedef struct {
     char name[32];
-    int value;
+    VariableType type;
+    union {
+	int int_value;
+	float float_value;
+    };
 } Variable;
+
 
 extern Variable variables[100];
 extern size_t variable_count;
@@ -49,8 +60,11 @@ void handle_int_opcode(FILE * input);
 void handle_print(const char *args, FILE * output);
 void handle_print_opcode(FILE * input);
 
-int set_variable(const char *name, int value);
-int get_variable(const char *name, int *value);
+void handle_float(const char *args, FILE * output);
+void handle_float_opcode(FILE * input);
+
+int set_variable(const char *name, VariableType type, void *value);
+int get_variable(const char *name, Variable * var);
 
 void compile(const char *input_file, const char *output_file);
 

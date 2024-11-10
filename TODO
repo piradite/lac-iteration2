@@ -1,9 +1,9 @@
 ### Data Types
     
     DONE  |  int                   name: int -> 5
+    DONE  |  float                 name: float -> 5.5
     -------------
     TODO  |  string                name: string -> "hi"
-    TODO  |  float                 name: float -> 5.5
     TODO  |  bool                  name: bool -> 1/true
     TODO  |  char                  name: char -> "a"
     TODO  |  any                   name: any -> "a" 
@@ -83,8 +83,8 @@
 
 ### Comments
 
-    TODO  |  ;;                     ;;text
-    TODO  |  ;* *;                 ;*  text  *;
+    DONE  |  ;;                     ;;text
+    DONE  |  ;* *;                 ;*  text  *;
 
 
 ### Other
