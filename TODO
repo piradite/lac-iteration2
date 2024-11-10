@@ -1,6 +1,7 @@
 ### Data Types
     
-    TODO  |  int                   name: int -> 5
+    DONE  |  int                   name: int -> 5
+    -------------
     TODO  |  string                name: string -> "hi"
     TODO  |  float                 name: float -> 5.5
     TODO  |  bool                  name: bool -> 1/true
@@ -36,6 +37,8 @@
 
 ### Functions
 
+    DONE  |  print                 print name
+    -------------
     TODO  |  sleep                 sleep <s>
     TODO  |  func                  func main[one: int]: ... end
     TODO  |  void                  void soon[two: string]: ... end
