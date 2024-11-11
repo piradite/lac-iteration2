@@ -5,7 +5,10 @@
 Opcode opcode_set[] = {
     { PRINT_OP, handle_print_opcode },
     { INT_OP, handle_int_opcode },
-    { FLOAT_OP, handle_float_opcode }
+    { FLOAT_OP, handle_float_opcode },
+    { STRING_OP, handle_string_opcode },
+    { CHAR_OP, handle_char_opcode },
+    { BOOL_OP, handle_bool_opcode }
 };
 
 size_t OPCODE_COUNT = sizeof(opcode_set) / sizeof(Opcode);

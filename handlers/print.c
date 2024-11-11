@@ -13,23 +13,23 @@ void handle_print(const char *args, FILE *output) {
     int expect_sep = 0;
 
     while (*segment) {
-	if (expect_sep) {
-		int nl_count = 0;
-		while (*segment == '.') { nl_count++; segment++; }
+    if (expect_sep) {
+        int nl_count = 0;
+        while (*segment == '.') { nl_count++; segment++; }
 
-		if (nl_count > 0) {
-			final_output = realloc(final_output, total_length + nl_count + 1);
-			if (!final_output) { perror("Memory allocation failed"); exit(1); }
-			memset(final_output + total_length, '\n', nl_count);
-			total_length += nl_count;
-			final_output[total_length] = '\0';
-			expect_sep = 0;
-			continue;
-		} else if (*segment == ',') { segment++; expect_sep = 0; continue; }
-		else { fprintf(stderr, "Error: Expected ',' or '.'\n"); exit(ERR_MALFORMED_PRINT); }
-	}
+        if (nl_count > 0) {
+        final_output = realloc(final_output, total_length + nl_count + 1);
+        if (!final_output) { perror("Memory allocation failed"); exit(1); }
+        memset(final_output + total_length, '\n', nl_count);
+        total_length += nl_count;
+        final_output[total_length] = '\0';
+        expect_sep = 0;
+        continue;
+        } else if (*segment == ',') { segment++; expect_sep = 0; continue; }
+        else { fprintf(stderr, "Error: Expected ',' or '.'\n"); exit(ERR_MALFORMED_PRINT); }
+        }
 
-	if (*segment == '"' || *segment == '\'') {
+        if (*segment == '"' || *segment == '\'') {
 		char quote = *segment++;
 		const char *start = segment, *end = strchr(segment, quote);
 		if (!end) { fprintf(stderr, "Unmatched quotation\n"); exit(ERR_MALFORMED_PRINT); }
@@ -43,8 +43,10 @@ void handle_print(const char *args, FILE *output) {
 		final_output[total_length] = '\0';
 		segment = end + 1;
 		expect_sep = 1;
-	} else if (isalpha(*segment) || *segment == '_') {
-		Variable var; char name[32]; int prec = -1;
+        } else if (isalpha(*segment) || *segment == '_') {
+		Variable var;
+		char name[32];
+		int prec = -1;
 		const char *start = segment;
 		while (isalnum(*segment) || *segment == '_') segment++;
 
@@ -58,6 +60,21 @@ void handle_print(const char *args, FILE *output) {
 		char value_str[32];
 		if (var.type == TYPE_INT) snprintf(value_str, sizeof(value_str), "%d", var.int_value);
 		else if (var.type == TYPE_FLOAT) snprintf(value_str, sizeof(value_str), (prec >= 0) ? "%.*f" : "%g", (prec >= 0) ? prec : 0, var.float_value);
+		else if (var.type == TYPE_STRING) {
+			int value_len = strlen(var.string_value);
+			final_output = realloc(final_output, total_length + value_len + 1);
+			if (!final_output) { perror("Memory allocation failed"); exit(1); }
+
+			strcpy(final_output + total_length, var.string_value);
+			total_length += value_len;
+			final_output[total_length] = '\0';
+			expect_sep = 1;
+			continue;
+		} else if (var.type == TYPE_CHAR) {
+			snprintf(value_str, sizeof(value_str), "%c", var.char_value);
+		} else if (var.type == TYPE_BOOL) {
+			snprintf(value_str, sizeof(value_str), "%s", var.bool_value ? "true" : "false");
+		}
 
 		int value_len = strlen(value_str);
 		final_output = realloc(final_output, total_length + value_len + 1);
@@ -67,8 +84,8 @@ void handle_print(const char *args, FILE *output) {
 		total_length += value_len;
 		final_output[total_length] = '\0';
 		expect_sep = 1;
-	} else segment++;
-	}
+        } else segment++;
+    }
 
     fwrite(&total_length, sizeof(size_t), 1, output);
     fwrite(final_output, 1, total_length, output);

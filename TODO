@@ -2,10 +2,10 @@
     
     DONE  |  int                   name: int -> 5
     DONE  |  float                 name: float -> 5.5
+    DONE  |  string                name: string -> "hi"
+    DONE  |  char                  name: char -> "a"
+    DONE  |  bool                  name: bool -> 1/true
     -------------
-    TODO  |  string                name: string -> "hi"
-    TODO  |  bool                  name: bool -> 1/true
-    TODO  |  char                  name: char -> "a"
     TODO  |  any                   name: any -> "a" 
     TODO  |  arrays                name: list -> ["one", 5, three]
     TODO  |  tuples                name: group -> ("one", 5, three)

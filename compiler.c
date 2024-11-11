@@ -6,7 +6,10 @@
 Instruction instruction_set[] = {
     { "print", PRINT_OP, handle_print },
     { "int", INT_OP, handle_int },
-    { "float", FLOAT_OP, handle_float }
+    { "float", FLOAT_OP, handle_float },
+    { "string", FLOAT_OP, handle_string },
+    { "char", CHAR_OP, handle_char },
+    { "bool", BOOL_OP, handle_bool }
 };
 
 size_t INSTRUCTION_COUNT = sizeof(instruction_set) / sizeof(Instruction);
@@ -60,6 +63,15 @@ void compile(const char *input_file, const char *output_file) {
 	    continue;
 	} else if (strstr(trimmed_line, ": float ->")) {
 	    handle_float(trimmed_line, output);
+	    continue;
+	} else if (strstr(trimmed_line, ": string ->")) {
+	    handle_string(trimmed_line, output);
+	    continue;
+	} else if (strstr(trimmed_line, ": char ->")) {
+	    handle_char(trimmed_line, output);
+	    continue;
+	} else if (strstr(trimmed_line, ": bool ->")) {
+	    handle_bool(trimmed_line, output);
 	    continue;
 	}
 

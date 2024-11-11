@@ -6,23 +6,39 @@
 int set_variable(const char *name, VariableType type, void *value) {
     for (size_t i = 0; i < variable_count; i++) {
 	if (strcmp(variables[i].name, name) == 0) {
+	    if (variables[i].type == TYPE_STRING)
+		free(variables[i].string_value);
 	    variables[i].type = type;
-	    if (type == TYPE_INT) {
+
+	    if (type == TYPE_INT)
 		variables[i].int_value = *(int *)value;
-	    } else {
+	    else if (type == TYPE_FLOAT)
 		variables[i].float_value = *(float *)value;
-	    }
+	    else if (type == TYPE_STRING)
+		variables[i].string_value = strdup((char *)value);
+	    else if (type == TYPE_CHAR)
+		variables[i].char_value = *(char *)value;
+	    else if (type == TYPE_BOOL)
+		variables[i].bool_value = *(bool *)value;
+
 	    return 0;
 	}
     }
 
-    strncpy(variables[variable_count].name, name, 32);
+    strncpy(variables[variable_count].name, name, sizeof(variables[variable_count].name) - 1);
     variables[variable_count].type = type;
-    if (type == TYPE_INT) {
+
+    if (type == TYPE_INT)
 	variables[variable_count].int_value = *(int *)value;
-    } else {
+    else if (type == TYPE_FLOAT)
 	variables[variable_count].float_value = *(float *)value;
-    }
+    else if (type == TYPE_STRING)
+	variables[variable_count].string_value = strdup((char *)value);
+    else if (type == TYPE_CHAR)
+	variables[variable_count].char_value = *(char *)value;
+    else if (type == TYPE_BOOL)
+	variables[variable_count].bool_value = *(bool *)value;
+
     variable_count++;
     return 0;
 }

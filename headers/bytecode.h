@@ -1,11 +1,15 @@
 #ifndef BYTECODE_H
 #define BYTECODE_H
 #include <stdio.h>
+#include <stdbool.h>
 
 typedef enum {
     PRINT_OP = 0x01,
     INT_OP = 0x02,
-    FLOAT_OP = 0x03
+    FLOAT_OP = 0x03,
+    STRING_OP = 0x04,
+    CHAR_OP = 0x05,
+    BOOL_OP = 0x06
 } OpcodeEnum;
 
 typedef enum {
@@ -31,7 +35,10 @@ typedef struct {
 
 typedef enum {
     TYPE_INT,
-    TYPE_FLOAT
+    TYPE_FLOAT,
+    TYPE_STRING,
+    TYPE_CHAR,
+    TYPE_BOOL
 } VariableType;
 
 typedef struct {
@@ -40,8 +47,12 @@ typedef struct {
     union {
 	int int_value;
 	float float_value;
+	char *string_value;
+	char char_value;
+	bool bool_value;
     };
 } Variable;
+
 
 
 extern Variable variables[100];
@@ -62,6 +73,15 @@ void handle_print_opcode(FILE * input);
 
 void handle_float(const char *args, FILE * output);
 void handle_float_opcode(FILE * input);
+
+void handle_string(const char *args, FILE * output);
+void handle_string_opcode(FILE * input);
+
+void handle_char(const char *args, FILE * output);
+void handle_char_opcode(FILE * input);
+
+void handle_bool(const char *args, FILE * output);
+void handle_bool_opcode(FILE * input);
 
 int set_variable(const char *name, VariableType type, void *value);
 int get_variable(const char *name, Variable * var);
