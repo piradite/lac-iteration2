@@ -9,13 +9,35 @@ Instruction instruction_set[] = {
     { "float", FLOAT_OP, handle_float },
     { "string", FLOAT_OP, handle_string },
     { "char", CHAR_OP, handle_char },
-    { "bool", BOOL_OP, handle_bool }
+    { "bool", BOOL_OP, handle_bool },
+    { "list", LIST_OP, handle_list }
 };
 
 size_t INSTRUCTION_COUNT = sizeof(instruction_set) / sizeof(Instruction);
 
 Variable variables[100];
 size_t variable_count;
+
+int handle_type_instruction(const char *line, FILE *output) {
+    char *start = strstr(line, ": ");
+    char *end = strstr(line, " ->");
+
+    if (start && end && end > start) {
+	size_t type_len = end - start - 2;
+	char type[type_len + 1];
+	strncpy(type, start + 2, type_len);
+	type[type_len] = '\0';
+
+	for (size_t i = 0; i < INSTRUCTION_COUNT; i++) {
+	    if (strcmp(type, instruction_set[i].name) == 0) {
+		instruction_set[i].handler(line, output);
+		return 1;
+	    }
+	}
+    }
+
+    return 0;
+}
 
 void compile(const char *input_file, const char *output_file) {
     FILE *input = fopen(input_file, "r");
@@ -43,35 +65,28 @@ void compile(const char *input_file, const char *output_file) {
 	}
 	char *start_block_comment = strstr(trimmed_line, ";*");
 	char *end_block_comment = strstr(trimmed_line, "*;");
+    
 	if (start_block_comment && !end_block_comment) {
 	    in_block_comment = 1;
 	    *start_block_comment = '\0';
 	} else if (start_block_comment && end_block_comment) {
 	    memmove(start_block_comment, end_block_comment + 2, strlen(end_block_comment + 2) + 1);
 	}
+
 	char *inline_comment = strstr(trimmed_line, ";;");
+
 	if (inline_comment) {
 	    *inline_comment = '\0';
 	}
+
 	trimmed_line = line + strspn(line, " \t");
 	trimmed_line[strcspn(trimmed_line, "\n")] = '\0';
+
 	if (strlen(trimmed_line) == 0) {
 	    continue;
 	}
-	if (strstr(trimmed_line, ": int ->")) {
-	    handle_int(trimmed_line, output);
-	    continue;
-	} else if (strstr(trimmed_line, ": float ->")) {
-	    handle_float(trimmed_line, output);
-	    continue;
-	} else if (strstr(trimmed_line, ": string ->")) {
-	    handle_string(trimmed_line, output);
-	    continue;
-	} else if (strstr(trimmed_line, ": char ->")) {
-	    handle_char(trimmed_line, output);
-	    continue;
-	} else if (strstr(trimmed_line, ": bool ->")) {
-	    handle_bool(trimmed_line, output);
+    
+	if (handle_type_instruction(trimmed_line, output)) {
 	    continue;
 	}
 
@@ -86,6 +101,7 @@ void compile(const char *input_file, const char *output_file) {
 		break;
 	    }
 	}
+
 	if (!found) {
 	    char error_msg[256];
 	    snprintf(error_msg, sizeof(error_msg), "Unknown instruction '%s'", command ? command : "NULL");

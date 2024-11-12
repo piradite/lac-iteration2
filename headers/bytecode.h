@@ -9,14 +9,17 @@ typedef enum {
     FLOAT_OP = 0x03,
     STRING_OP = 0x04,
     CHAR_OP = 0x05,
-    BOOL_OP = 0x06
+    BOOL_OP = 0x06,
+    LIST_OP = 0x10
 } OpcodeEnum;
 
 typedef enum {
     ERR_UNKNOWN_INSTRUCTION = -1,
     ERR_FILE_ERROR = -2,
     ERR_MALFORMED_PRINT = -3,
-    ERR_UNINITIALIZED_VARIABLE = -4
+    ERR_UNINITIALIZED_VARIABLE = -4,
+    ERR_MALFORMED_LIST = -5,
+    ERR_OUT_OF_BOUNDS = -6
 } ErrorCode;
 
 typedef void (*InstructionHandler)(const char *args, FILE * output);
@@ -38,10 +41,18 @@ typedef enum {
     TYPE_FLOAT,
     TYPE_STRING,
     TYPE_CHAR,
-    TYPE_BOOL
+    TYPE_BOOL,
+    TYPE_LIST
 } VariableType;
 
+struct Variable;
+
 typedef struct {
+    struct Variable **elements;
+    size_t count;
+} List;
+
+typedef struct Variable {
     char name[32];
     VariableType type;
     union {
@@ -50,10 +61,9 @@ typedef struct {
 	char *string_value;
 	char char_value;
 	bool bool_value;
+	List *list_value;
     };
 } Variable;
-
-
 
 extern Variable variables[100];
 extern size_t variable_count;
@@ -82,6 +92,9 @@ void handle_char_opcode(FILE * input);
 
 void handle_bool(const char *args, FILE * output);
 void handle_bool_opcode(FILE * input);
+
+void handle_list(const char *args, FILE * output);
+void handle_list_opcode(FILE * input);
 
 int set_variable(const char *name, VariableType type, void *value);
 int get_variable(const char *name, Variable * var);

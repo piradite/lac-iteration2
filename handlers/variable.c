@@ -6,8 +6,17 @@
 int set_variable(const char *name, VariableType type, void *value) {
     for (size_t i = 0; i < variable_count; i++) {
 	if (strcmp(variables[i].name, name) == 0) {
-	    if (variables[i].type == TYPE_STRING)
+
+	    if (variables[i].type == TYPE_STRING) {
 		free(variables[i].string_value);
+	    } else if (variables[i].type == TYPE_LIST) {
+		for (size_t j = 0; j < variables[i].list_value->count; j++) {
+		    free(variables[i].list_value->elements[j]);
+		}
+		free(variables[i].list_value->elements);
+		free(variables[i].list_value);
+	    }
+
 	    variables[i].type = type;
 
 	    if (type == TYPE_INT)
@@ -20,6 +29,8 @@ int set_variable(const char *name, VariableType type, void *value) {
 		variables[i].char_value = *(char *)value;
 	    else if (type == TYPE_BOOL)
 		variables[i].bool_value = *(bool *)value;
+	    else if (type == TYPE_LIST)
+		variables[i].list_value = (List *) value;
 
 	    return 0;
 	}
@@ -38,6 +49,8 @@ int set_variable(const char *name, VariableType type, void *value) {
 	variables[variable_count].char_value = *(char *)value;
     else if (type == TYPE_BOOL)
 	variables[variable_count].bool_value = *(bool *)value;
+    else if (type == TYPE_LIST)
+	variables[variable_count].list_value = (List *) value;
 
     variable_count++;
     return 0;

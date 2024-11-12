@@ -13,91 +13,232 @@ void handle_print(const char *args, FILE *output) {
     int expect_sep = 0;
 
     while (*segment) {
-    if (expect_sep) {
-        int nl_count = 0;
-        while (*segment == '.') { nl_count++; segment++; }
 
-        if (nl_count > 0) {
-        final_output = realloc(final_output, total_length + nl_count + 1);
-        if (!final_output) { perror("Memory allocation failed"); exit(1); }
-        memset(final_output + total_length, '\n', nl_count);
-        total_length += nl_count;
-        final_output[total_length] = '\0';
-        expect_sep = 0;
-        continue;
-        } else if (*segment == ',') { segment++; expect_sep = 0; continue; }
-        else { fprintf(stderr, "Error: Expected ',' or '.'\n"); exit(ERR_MALFORMED_PRINT); }
-        }
+	while (isspace((unsigned char)*segment)) {
+	    segment++;
+	}
+	if (expect_sep) {
+	    int nl_count = 0;
+	    while (*segment == '.') {
+		nl_count++;
+		segment++;
+	    }
 
-        if (*segment == '"' || *segment == '\'') {
-		char quote = *segment++;
-		const char *start = segment, *end = strchr(segment, quote);
-		if (!end) { fprintf(stderr, "Unmatched quotation\n"); exit(ERR_MALFORMED_PRINT); }
-
-		size_t len = end - start;
-		final_output = realloc(final_output, total_length + len + 1);
-		if (!final_output) { perror("Memory allocation failed"); exit(1); }
-
-		strncpy(final_output + total_length, start, len);
-		total_length += len;
+	    if (nl_count > 0) {
+		char *temp_output = realloc(final_output, total_length + nl_count + 1);
+		if (!temp_output) {
+		    perror("Memory allocation failed");
+		    free(final_output);
+		    exit(1);
+		}
+		final_output = temp_output;
+		memset(final_output + total_length, '\n', nl_count);
+		total_length += nl_count;
 		final_output[total_length] = '\0';
-		segment = end + 1;
-		expect_sep = 1;
-        } else if (isalpha(*segment) || *segment == '_') {
-		Variable var;
-		char name[32];
-		int prec = -1;
-		const char *start = segment;
-		while (isalnum(*segment) || *segment == '_') segment++;
+		expect_sep = 0;
+		continue;
+	    } else if (*segment == ',') {
+		segment++;
+		expect_sep = 0;
+		continue;
+	    } else {
+		fprintf(stderr, "Error: Expected ',' or '.'\n");
+		free(final_output);
+		exit(ERR_MALFORMED_PRINT);
+	    }
+	}
 
-		size_t name_len = segment - start;
-		if (name_len >= sizeof(name)) { fprintf(stderr, "Variable name too long\n"); exit(ERR_MALFORMED_PRINT); }
-		strncpy(name, start, name_len); name[name_len] = '\0';
+	if (isalpha(*segment) || *segment == '_') {
+	    Variable var;
+	    char name[32];
+	    int index = -1;
 
-		if (get_variable(name, &var) == -1) { fprintf(stderr, "Uninitialized variable '%s'\n", name); exit(ERR_UNINITIALIZED_VARIABLE); }
-		if (var.type == TYPE_FLOAT && *segment == '%') { segment++; if (isdigit(*segment)) prec = atoi(segment); while (isdigit(*segment)) segment++; }
+	    const char *start = segment;
+	    while (isalnum(*segment) || *segment == '_')
+		segment++;
 
-		char value_str[32];
-		if (var.type == TYPE_INT) snprintf(value_str, sizeof(value_str), "%d", var.int_value);
-		else if (var.type == TYPE_FLOAT) snprintf(value_str, sizeof(value_str), (prec >= 0) ? "%.*f" : "%g", (prec >= 0) ? prec : 0, var.float_value);
-		else if (var.type == TYPE_STRING) {
-			int value_len = strlen(var.string_value);
-			final_output = realloc(final_output, total_length + value_len + 1);
-			if (!final_output) { perror("Memory allocation failed"); exit(1); }
+	    size_t name_len = segment - start;
+	    if (name_len >= sizeof(name)) {
+		fprintf(stderr, "Variable name too long\n");
+		free(final_output);
+		exit(ERR_MALFORMED_PRINT);
+	    }
+	    strncpy(name, start, name_len);
+	    name[name_len] = '\0';
 
-			strcpy(final_output + total_length, var.string_value);
-			total_length += value_len;
-			final_output[total_length] = '\0';
-			expect_sep = 1;
-			continue;
-		} else if (var.type == TYPE_CHAR) {
-			snprintf(value_str, sizeof(value_str), "%c", var.char_value);
-		} else if (var.type == TYPE_BOOL) {
-			snprintf(value_str, sizeof(value_str), "%s", var.bool_value ? "true" : "false");
+	    if (*segment == '%') {
+		segment++;
+		if (isdigit(*segment)) {
+		    index = atoi(segment);
+		    while (isdigit(*segment))
+			segment++;
+		} else {
+		    fprintf(stderr, "Error: Invalid list index format\n");
+		    free(final_output);
+		    exit(ERR_MALFORMED_PRINT);
+		}
+	    }
+
+	    if (get_variable(name, &var) == -1) {
+		fprintf(stderr, "Uninitialized variable '%s'\n", name);
+		free(final_output);
+		exit(ERR_UNINITIALIZED_VARIABLE);
+	    }
+
+	    char value_str[32] = { 0 };
+	    int value_len = 0;
+
+	    if (index >= 0 && var.type == TYPE_LIST) {
+		if (index >= var.list_value->count) {
+		    fprintf(stderr, "Index %d out of bounds for list '%s'\n", index, name);
+		    free(final_output);
+		    exit(ERR_OUT_OF_BOUNDS);
 		}
 
-		int value_len = strlen(value_str);
-		final_output = realloc(final_output, total_length + value_len + 1);
-		if (!final_output) { perror("Memory allocation failed"); exit(1); }
+		Variable *elem = var.list_value->elements[index - 1];
+		switch (elem->type) {
+		case TYPE_INT:
+		    snprintf(value_str, sizeof(value_str), "%d", elem->int_value);
+		    break;
+		case TYPE_STRING:
+		    snprintf(value_str, sizeof(value_str), "%s", elem->string_value);
+		    break;
+		case TYPE_CHAR:
+		    snprintf(value_str, sizeof(value_str), "%c", elem->char_value);
+		    break;
+		case TYPE_BOOL:
+		    snprintf(value_str, sizeof(value_str), "%s", elem->bool_value ? "true" : "false");
+		    break;
+		default:
+		    snprintf(value_str, sizeof(value_str), "Unknown");
+		}
+		value_len = strlen(value_str);
+	    } else {
 
-		strcpy(final_output + total_length, value_str);
-		total_length += value_len;
-		final_output[total_length] = '\0';
-		expect_sep = 1;
-        } else segment++;
+		switch (var.type) {
+		case TYPE_INT:
+		    snprintf(value_str, sizeof(value_str), "%d", var.int_value);
+		    value_len = strlen(value_str);
+		    break;
+		case TYPE_STRING:
+		    value_len = strlen(var.string_value);
+		    char *temp_output = realloc(final_output, total_length + value_len + 1);
+		    if (!temp_output) {
+			perror("Memory allocation failed");
+			free(final_output);
+			exit(1);
+		    }
+		    final_output = temp_output;
+		    strcpy(final_output + total_length, var.string_value);
+		    total_length += value_len;
+		    final_output[total_length] = '\0';
+		    expect_sep = 1;
+		    continue;
+		case TYPE_CHAR:
+		    snprintf(value_str, sizeof(value_str), "%c", var.char_value);
+		    value_len = 1;
+		    break;
+		case TYPE_BOOL:
+		    snprintf(value_str, sizeof(value_str), "%s", var.bool_value ? "true" : "false");
+		    value_len = strlen(value_str);
+		    break;
+		case TYPE_LIST:
+		    List * list = var.list_value;
+		    for (size_t i = 0; i < list->count; i++) {
+			Variable *elem = list->elements[i];
+			char elem_str[64] = { 0 };
+
+			switch (elem->type) {
+			case TYPE_INT:
+			    snprintf(elem_str, sizeof(elem_str), "%d", elem->int_value);
+			    break;
+			case TYPE_STRING:
+			    snprintf(elem_str, sizeof(elem_str), "%s", elem->string_value);
+			    break;
+			case TYPE_CHAR:
+			    snprintf(elem_str, sizeof(elem_str), "%c", elem->char_value);
+			    break;
+			case TYPE_BOOL:
+			    snprintf(elem_str, sizeof(elem_str), "%s", elem->bool_value ? "true" : "false");
+			    break;
+			default:
+			    snprintf(elem_str, sizeof(elem_str), "Unknown");
+			}
+
+			size_t elem_len = strlen(elem_str);
+			char *temp_output = realloc(final_output, total_length + elem_len + 3);
+			if (!temp_output) {
+			    perror("Memory allocation failed");
+			    free(final_output);
+			    exit(1);
+			}
+
+			final_output = temp_output;
+			strcpy(final_output + total_length, elem_str);
+			total_length += elem_len;
+
+			if (i < list->count - 1) {
+			    final_output[total_length++] = ',';
+			    final_output[total_length++] = ' ';
+			}
+
+			final_output[total_length] = '\0';
+		    }
+		    break;
+		default:
+		    fprintf(stderr, "Unknown variable type\n");
+		    free(final_output);
+		    exit(ERR_MALFORMED_PRINT);
+		}
+	    }
+
+	    char *temp_output = realloc(final_output, total_length + value_len + 1);
+	    if (!temp_output) {
+		perror("Memory allocation failed");
+		free(final_output);
+		exit(1);
+	    }
+	    final_output = temp_output;
+	    strncpy(final_output + total_length, value_str, value_len);
+	    total_length += value_len;
+	    final_output[total_length] = '\0';
+
+	    expect_sep = 1;
+	} else {
+	    fprintf(stderr, "Unexpected character '%c'\n", *segment);
+	    free(final_output);
+	    exit(ERR_MALFORMED_PRINT);
+	}
     }
 
     fwrite(&total_length, sizeof(size_t), 1, output);
-    fwrite(final_output, 1, total_length, output);
+    fwrite(final_output, sizeof(char), total_length, output);
     free(final_output);
 }
 
 void handle_print_opcode(FILE *input) {
     size_t length;
-    fread(&length, sizeof(size_t), 1, input);
+    if (fread(&length, sizeof(size_t), 1, input) != 1) {
+	fprintf(stderr, "Error reading print string length\n");
+	exit(ERR_FILE_ERROR);
+    }
+
+    if (length > 10000) {
+	fprintf(stderr, "Error: Print string length is unreasonably large (%zu)\n", length);
+	exit(ERR_MALFORMED_PRINT);
+    }
+
     char *text = malloc(length + 1);
-    if (!text) { perror("Memory allocation failed"); exit(1); }
-    fread(text, 1, length, input);
+    if (!text) {
+	perror("Memory allocation failed");
+	exit(1);
+    }
+
+    if (fread(text, 1, length, input) != length) {
+	fprintf(stderr, "Error reading print string data\n");
+	free(text);
+	exit(ERR_FILE_ERROR);
+    }
     text[length] = '\0';
     printf("%s\n", text);
     free(text);
