@@ -62,7 +62,8 @@
 
 ### Memory Management
 
-    TODO  |  print address         print &name
+    DONE  |  print address         print &name
+    -------------
     TODO  |  alloc                 name: alloc -> Memory
     TODO  |  dealloc               dealloc name
 
