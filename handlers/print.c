@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdint.h>
 #include "../headers/bytecode.h"
 
 void handle_print(const char *args, FILE *output) {
@@ -13,7 +14,6 @@ void handle_print(const char *args, FILE *output) {
     int expect_sep = 0;
 
     while (*segment) {
-
 	while (isspace((unsigned char)*segment)) {
 	    segment++;
 	}
@@ -85,7 +85,7 @@ void handle_print(const char *args, FILE *output) {
 		exit(ERR_UNINITIALIZED_VARIABLE);
 	    }
 
-	    char value_str[32] = { 0 };
+	    char value_str[64] = { 0 };
 	    int value_len = 0;
 
 	    if (index >= 0 && var.type == TYPE_LIST) {
@@ -98,7 +98,7 @@ void handle_print(const char *args, FILE *output) {
 		Variable *elem = var.list_value->elements[index - 1];
 		switch (elem->type) {
 		case TYPE_INT:
-		    snprintf(value_str, sizeof(value_str), "%d", elem->int_value);
+		    snprintf(value_str, sizeof(value_str), "%lld", elem->int_value);
 		    break;
 		case TYPE_STRING:
 		    snprintf(value_str, sizeof(value_str), "%s", elem->string_value);
@@ -114,10 +114,9 @@ void handle_print(const char *args, FILE *output) {
 		}
 		value_len = strlen(value_str);
 	    } else {
-
 		switch (var.type) {
 		case TYPE_INT:
-		    snprintf(value_str, sizeof(value_str), "%d", var.int_value);
+		    snprintf(value_str, sizeof(value_str), "%lld", var.int_value);
 		    value_len = strlen(value_str);
 		    break;
 		case TYPE_STRING:
@@ -150,7 +149,7 @@ void handle_print(const char *args, FILE *output) {
 
 			switch (elem->type) {
 			case TYPE_INT:
-			    snprintf(elem_str, sizeof(elem_str), "%d", elem->int_value);
+			    snprintf(elem_str, sizeof(elem_str), "%lld", elem->int_value);
 			    break;
 			case TYPE_STRING:
 			    snprintf(elem_str, sizeof(elem_str), "%s", elem->string_value);
