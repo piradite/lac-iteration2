@@ -77,7 +77,7 @@ void handle_print(const char *args, FILE *output) {
         Variable *elem = var.list_value->elements[index - 1];
         switch (elem->type) {
         case TYPE_INT: snprintf(value_str, sizeof(value_str), "%lld", elem->int_value); break;
-        case TYPE_FLOAT: snprintf(value_str, sizeof(value_str), "%.2f", elem->float_value); break;
+        case TYPE_FLOAT: snprintf(value_str, sizeof(value_str), "%g", elem->float_value); break;
         case TYPE_STRING: snprintf(value_str, sizeof(value_str), "%s", elem->string_value); break;
         case TYPE_CHAR: snprintf(value_str, sizeof(value_str), "%c", elem->char_value); break;
         case TYPE_BOOL: snprintf(value_str, sizeof(value_str), "%s", elem->bool_value ? "true" : "false"); break;
@@ -107,7 +107,7 @@ void handle_print(const char *args, FILE *output) {
         char elem_str[64] = { 0 };
 		switch (elem->type) {
 		case TYPE_INT: snprintf(elem_str, sizeof(elem_str), "%lld", elem->int_value); break;
-		case TYPE_FLOAT: snprintf(elem_str, sizeof(elem_str), "%.2f", elem->float_value); break;
+		case TYPE_FLOAT: snprintf(elem_str, sizeof(elem_str), "%g", elem->float_value); break;
 		case TYPE_STRING: snprintf(elem_str, sizeof(elem_str), "%s", elem->string_value); break;
 		case TYPE_CHAR: snprintf(elem_str, sizeof(elem_str), "%c", elem->char_value); break;
 		case TYPE_BOOL: snprintf(elem_str, sizeof(elem_str), "%s", elem->bool_value ? "true" : "false"); break;

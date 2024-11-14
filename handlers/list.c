@@ -48,12 +48,25 @@ void handle_list(const char *args, FILE *output) {
 
 	Variable *new_element = malloc(sizeof(Variable));
 
-	if (isdigit(*element) || *element == '-') {
-	    int value = atoi(element);
-	    fwrite(&(unsigned char) { TYPE_INT }, 1, 1, output);
-	    fwrite(&value, sizeof(int), 1, output);
-	    new_element->type = TYPE_INT;
-	    new_element->int_value = value;
+	if (isdigit(*element) || (*element == '-' && isdigit(*(element + 1)))) {
+		const char *str = element;
+		if (*str == '-') str++;
+		int dot_count = 0;
+		
+		while (*str && (isdigit(*str) || (*str == '.' && dot_count == 0))) { if (*str == '.') dot_count++; str++; }
+		if (*str == '\0' && dot_count == 1) {
+		float float_value = atof(element);
+		fwrite(&(unsigned char) { TYPE_FLOAT }, 1, 1, output);
+		fwrite(&float_value, sizeof(float), 1, output);
+		new_element->type = TYPE_FLOAT;
+		new_element->float_value = float_value;
+		} else {
+		int value = atoi(element);
+		fwrite(&(unsigned char) { TYPE_INT }, 1, 1, output);
+		fwrite(&value, sizeof(int), 1, output);
+		new_element->type = TYPE_INT;
+		new_element->int_value = value;
+		}
 	} else if (strcmp(element, "true") == 0 || strcmp(element, "false") == 0) {
 	    unsigned char bool_value = (strcmp(element, "true") == 0) ? 1 : 0;
 	    fwrite(&(unsigned char) { TYPE_BOOL }, 1, 1, output);
@@ -172,6 +185,11 @@ void handle_list_opcode(FILE *input) {
 		exit(ERR_FILE_ERROR);
 	    }
 	    element->char_value = char_value;
+	} else if (type == TYPE_FLOAT) {
+		if (fread(&element->float_value, sizeof(float), 1, input) != 1) {
+		fprintf(stderr, "Error reading float value\n");
+		exit(ERR_FILE_ERROR);
+	    }
 	} else {
 	    fprintf(stderr, "Unknown element type: %d\n", type);
 	    exit(ERR_MALFORMED_LIST);
