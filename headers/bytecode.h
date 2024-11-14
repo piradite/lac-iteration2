@@ -78,9 +78,6 @@ void handle_print_opcode(FILE * input);
 void handle_int(const char *args, FILE * output);
 void handle_int_opcode(FILE * input);
 
-void handle_print(const char *args, FILE * output);
-void handle_print_opcode(FILE * input);
-
 void handle_float(const char *args, FILE * output);
 void handle_float_opcode(FILE * input);
 
