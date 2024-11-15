@@ -1,5 +1,15 @@
 one: int -> 5
-print "text", one. ;;output: text5 
+two: float -> 2.6431
+three: string -> "hello"
+four: char -> 'a'
+five: list -> ["one", 5, 5.135, 'a', "world", true]
+six: group -> ("a", "bello")
 
-two: float -> 5.1252412312
-print two, " ", two%3 ;* output: "two" is printed trimmed to 5 values, but adding %3 prints out only 3 values after dot, so output: 5.12524 5.125 *;
+print one. two. three. four. five. five%4.
+
+print &one. &two. &three. &four. &five. &five%3
+
+print "Group: ", six. \
+    "Element 1: ", six%1. \
+    "Element 2: ", six%2.. \
+    "Addresses: ". &six. &six%1. &six%2

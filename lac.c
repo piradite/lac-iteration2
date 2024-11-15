@@ -9,7 +9,8 @@ Opcode opcode_set[] = {
     { STRING_OP, handle_string_opcode },
     { CHAR_OP, handle_char_opcode },
     { BOOL_OP, handle_bool_opcode },
-    { LIST_OP, handle_list_opcode }
+    { LIST_OP, handle_list_opcode },
+    { GROUP_OP, handle_group_opcode }
 };
 
 size_t OPCODE_COUNT = sizeof(opcode_set) / sizeof(Opcode);

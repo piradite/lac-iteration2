@@ -11,9 +11,26 @@ void handle_print(const char *args, FILE *output) {
     size_t total_length = 0;
     const char *segment = args;
     int expect_sep = 0;
+	int continuation = 0;
 
     while (*segment) {
         while (isspace((unsigned char)*segment)) segment++;
+        if (*segment == '\\') {
+		segment++;
+		while (*segment && isspace((unsigned char)*segment)) {
+		while (*segment == '\n') {
+		segment++;
+		break;
+		}
+		while (*segment == '\0') {
+		segment++;
+		break;
+		}
+		segment++;
+		}
+        continue;
+        }
+		
         if (expect_sep) {
 		int nl_count = 0;
 		while (*segment == '.') nl_count++, segment++;
@@ -27,8 +44,10 @@ void handle_print(const char *args, FILE *output) {
 		final_output[total_length] = '\0';
 		expect_sep = 0;
 		continue;
-		} else if (*segment == ',') { segment++; expect_sep = 0; continue; }
-		else { fprintf(stderr, "Error: Expected ',' or '.'\n"); free(final_output); exit(ERR_MALFORMED_PRINT); }
+		} else if (*segment == ',') { segment++; expect_sep = 0; continue;
+		} else if (*segment == '\\') { continue;
+		} else if (*segment == '\0') { break;
+		} else { fprintf(stderr, "Error: Expected ',' or '.'\n"); free(final_output); exit(ERR_MALFORMED_PRINT); }
         }
 
         int print_address = 0;
@@ -37,6 +56,37 @@ void handle_print(const char *args, FILE *output) {
 		segment++;
         }
 
+		if (*segment == '"') {
+		segment++;
+		const char *start = segment;
+
+		while (*segment && *segment != '"') segment++;
+		if (*segment != '"') {
+		fprintf(stderr, "Error: Unterminated string literal\n");
+		free(final_output);
+		exit(ERR_MALFORMED_PRINT);
+		}
+
+		size_t literal_length = segment - start;
+		char *temp_output = realloc(final_output, total_length + literal_length + 1);
+		if (!temp_output) {
+		perror("Memory allocation failed");
+		free(final_output);
+		exit(1);
+		}
+		final_output = temp_output;
+		strncpy(final_output + total_length, start, literal_length);
+		total_length += literal_length;
+		final_output[total_length] = '\0';
+
+		segment++;
+		expect_sep = 1;
+
+		while (isspace((unsigned char)*segment)) segment++;
+		
+		continue;
+		}
+		
         if (isalpha(*segment) || *segment == '_') {
 		Variable var;
 		char name[32];
@@ -72,6 +122,19 @@ void handle_print(const char *args, FILE *output) {
         snprintf(value_str, sizeof(value_str), "%p", (void *)actual_var);
         }
     	value_len = strlen(value_str);
+		if (index > 0 && var.type == TYPE_GROUP) {
+        if (index <= var.group_value->count) {
+        Variable *elem = var.group_value->elements[index - 1];
+        snprintf(value_str, sizeof(value_str), "%p", (void *)elem);
+        } else {
+        fprintf(stderr, "Index %d out of bounds for group '%s'\n", index, name);
+        free(final_output);
+        exit(ERR_OUT_OF_BOUNDS);
+        }
+		} else {
+		snprintf(value_str, sizeof(value_str), "%p", (void *)var.group_value);
+		}
+    	value_len = strlen(value_str);
         } else if (index > 0 && var.type == TYPE_LIST) {
         if (index <= var.list_value->count) {
         Variable *elem = var.list_value->elements[index - 1];
@@ -85,7 +148,24 @@ void handle_print(const char *args, FILE *output) {
         }
         value_len = strlen(value_str);
         } else { fprintf(stderr, "Index %d out of bounds for list '%s'\n", index, name); free(final_output); exit(ERR_OUT_OF_BOUNDS); }
-    	} else {
+    	} else if (index > 0 && var.type == TYPE_GROUP) {
+    	if (index <= var.group_value->count) {
+        Variable *elem = var.group_value->elements[index - 1];
+        switch (elem->type) {
+        case TYPE_INT: snprintf(value_str, sizeof(value_str), "%lld", elem->int_value); break;
+        case TYPE_FLOAT: snprintf(value_str, sizeof(value_str), "%g", elem->float_value); break;
+        case TYPE_STRING: snprintf(value_str, sizeof(value_str), "%s", elem->string_value); break;
+        case TYPE_CHAR: snprintf(value_str, sizeof(value_str), "%c", elem->char_value); break;
+        case TYPE_BOOL: snprintf(value_str, sizeof(value_str), "%s", elem->bool_value ? "true" : "false"); break;
+        default: snprintf(value_str, sizeof(value_str), "Unknown");
+        }
+        value_len = strlen(value_str);
+		} else {
+		fprintf(stderr, "Index %d out of bounds for group '%s'\n", index, name);
+		free(final_output);
+		exit(ERR_OUT_OF_BOUNDS);
+		}
+		} else {
         switch (var.type) {
         case TYPE_INT: snprintf(value_str, sizeof(value_str), "%lld", var.int_value); value_len = strlen(value_str); break;
         case TYPE_FLOAT: snprintf(value_str, sizeof(value_str), "%g", var.float_value); value_len = strlen(value_str); break;
@@ -120,13 +200,43 @@ void handle_print(const char *args, FILE *output) {
 		strcpy(final_output + total_length, elem_str);
 		total_length += elem_len;
 		if (i < list->count - 1) {
-			final_output[total_length++] = ',';
-			final_output[total_length++] = ' ';
+		final_output[total_length++] = ',';
+		final_output[total_length++] = ' ';
 		}
 		final_output[total_length] = '\0';
 		}
 		break;
 		}
+		case TYPE_GROUP: {
+        Group *group = var.group_value;
+        for (size_t i = 0; i < group->count; i++) {
+        Variable *elem = group->elements[i];
+        char elem_str[64] = {0};
+        switch (elem->type) {
+        case TYPE_INT: snprintf(elem_str, sizeof(elem_str), "%d", elem->int_value); break;
+        case TYPE_FLOAT: snprintf(elem_str, sizeof(elem_str), "%g", elem->float_value); break;
+        case TYPE_STRING:snprintf(elem_str, sizeof(elem_str), "%s", elem->string_value); break;
+        case TYPE_CHAR: snprintf(elem_str, sizeof(elem_str), "%c", elem->char_value); break;
+        case TYPE_BOOL: snprintf(elem_str, sizeof(elem_str), "%s", elem->bool_value ? "true" : "false"); break;
+        default: snprintf(elem_str, sizeof(elem_str), "Unknown"); }
+        size_t elem_len = strlen(elem_str);
+        char *temp_output = realloc(final_output, total_length + elem_len + 3);
+        if (!temp_output) { 
+		perror("Memory allocation failed"); 
+		free(final_output); 
+		exit(1);
+		}
+        final_output = temp_output;
+        strcpy(final_output + total_length, elem_str);
+        total_length += elem_len;
+        if (i < group->count - 1) {
+        final_output[total_length++] = ',';
+        final_output[total_length++] = ' ';
+        }
+        final_output[total_length] = '\0';
+        }
+        break;
+    	}
 		default: fprintf(stderr, "Unknown variable type\n"); free(final_output); exit(ERR_MALFORMED_PRINT);
 		}
 		}
@@ -150,7 +260,6 @@ void handle_print(const char *args, FILE *output) {
 		fwrite(final_output, sizeof(char), total_length, output);
 		free(final_output);
 }
-
 
 void handle_print_opcode(FILE *input) {
     size_t length;

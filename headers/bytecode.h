@@ -10,7 +10,8 @@ typedef enum {
     STRING_OP = 0x04,
     CHAR_OP = 0x05,
     BOOL_OP = 0x06,
-    LIST_OP = 0x10
+    LIST_OP = 0x10,
+    GROUP_OP = 0x11
 } OpcodeEnum;
 
 typedef enum {
@@ -42,7 +43,8 @@ typedef enum {
     TYPE_STRING,
     TYPE_CHAR,
     TYPE_BOOL,
-    TYPE_LIST
+    TYPE_LIST,
+    TYPE_GROUP
 } VariableType;
 
 struct Variable;
@@ -51,6 +53,13 @@ typedef struct {
     struct Variable **elements;
     size_t count;
 } List;
+
+typedef struct {
+    VariableType element_type;
+    struct Variable **elements;
+    size_t count;
+} Group;
+
 
 typedef struct Variable {
     char name[32];
@@ -62,6 +71,7 @@ typedef struct Variable {
 	char char_value;
 	bool bool_value;
 	List *list_value;
+    Group *group_value;
     };
 } Variable;
 
@@ -92,6 +102,9 @@ void handle_bool_opcode(FILE * input);
 
 void handle_list(const char *args, FILE * output);
 void handle_list_opcode(FILE * input);
+
+void handle_group(const char *args, FILE * output);
+void handle_group_opcode(FILE * input);
 
 int set_variable(const char *name, VariableType type, void *value);
 int get_variable(const char *name, Variable * var);

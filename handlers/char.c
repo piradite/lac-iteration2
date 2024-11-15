@@ -7,7 +7,7 @@ void handle_char(const char *args, FILE *output) {
     fwrite(&(unsigned char) { CHAR_OP }, 1, 1, output);
 
     char name[32];
-    char char_value;
+    char value;
     char *colon_ptr = strchr(args, ':');
     char *arrow_ptr = strstr(args, "->");
 
@@ -31,13 +31,13 @@ void handle_char(const char *args, FILE *output) {
 	fprintf(stderr, "Error: Invalid char value in assignment\n");
 	exit(ERR_MALFORMED_PRINT);
     }
-    char_value = value_start[1];
+    value = value_start[1];
 
     fwrite(&name_len, sizeof(size_t), 1, output);
     fwrite(name, sizeof(char), name_len, output);
-    fwrite(&char_value, sizeof(char), 1, output);
+    fwrite(&value, sizeof(char), 1, output);
 
-    set_variable(name, TYPE_CHAR, &char_value);
+    set_variable(name, TYPE_CHAR, &value);
 }
 
 void handle_char_opcode(FILE *input) {
@@ -48,8 +48,8 @@ void handle_char_opcode(FILE *input) {
     fread(name, sizeof(char), name_len, input);
     name[name_len] = '\0';
 
-    char char_value;
-    fread(&char_value, sizeof(char), 1, input);
+    char value;
+    fread(&value, sizeof(char), 1, input);
 
-    set_variable(name, TYPE_CHAR, &char_value);
+    set_variable(name, TYPE_CHAR, &value);
 }

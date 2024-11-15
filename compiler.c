@@ -10,7 +10,8 @@ Instruction instruction_set[] = {
     { "string", FLOAT_OP, handle_string },
     { "char", CHAR_OP, handle_char },
     { "bool", BOOL_OP, handle_bool },
-    { "list", LIST_OP, handle_list }
+    { "list", LIST_OP, handle_list },
+	{ "group", GROUP_OP, handle_group }
 };
 
 size_t INSTRUCTION_COUNT = sizeof(instruction_set) / sizeof(Instruction);
@@ -48,6 +49,7 @@ void compile(const char *input_file, const char *output_file) {
     }
 
     char line[256];
+    char full_line[1024] = "";
     int in_block_comment = 0;
 
     while (fgets(line, sizeof(line), input)) {
@@ -85,15 +87,25 @@ void compile(const char *input_file, const char *output_file) {
 	if (strlen(trimmed_line) == 0) {
 	    continue;
 	}
-    
-	if (handle_type_instruction(trimmed_line, output)) {
-	    continue;
+
+	size_t len = strlen(trimmed_line);
+	if (trimmed_line[len - 1] == '\\') {
+		trimmed_line[len - 1] = '\0';
+		strcat(full_line, trimmed_line);
+		continue;
+	} else {
+		strcat(full_line, trimmed_line);
 	}
 
-	char *command = strtok(trimmed_line, " ");
-	char *args = strtok(NULL, "\n");
+	if (handle_type_instruction(full_line, output)) {
+		full_line[0] = '\0';
+		continue;
+	}
 
+	char *command = strtok(full_line, " ");
+	char *args = strtok(NULL, "\n");
 	int found = 0;
+
 	for (size_t i = 0; i < INSTRUCTION_COUNT; i++) {
 	    if (command && strcmp(command, instruction_set[i].name) == 0) {
 		instruction_set[i].handler(args, output);
@@ -101,13 +113,15 @@ void compile(const char *input_file, const char *output_file) {
 		break;
 	    }
 	}
-
+	
 	if (!found) {
 	    char error_msg[256];
 	    snprintf(error_msg, sizeof(error_msg), "Unknown instruction '%s'", command ? command : "NULL");
 	    log_error(error_msg);
 	    exit(ERR_UNKNOWN_INSTRUCTION);
 	}
+
+	full_line[0] = '\0';
     }
 
     fclose(input);
